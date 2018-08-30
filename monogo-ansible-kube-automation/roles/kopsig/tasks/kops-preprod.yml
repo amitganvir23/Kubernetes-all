@@ -1,0 +1,59 @@
+---
+
+# Include variable and secrets based on type of environment
+# all is available across
+
+- include_vars: ../../group_vars/preprod.yml
+  no_log: true
+  when: env_ver == "pre-prod"
+
+
+# Pre Prod ENV
+- name: Generate Kops instance group template
+  template: >
+     src="{{ role_path }}/files/pre-prod/kops-ig.j2"
+     dest=/tmp/kops-ig.yml
+  when: env_ver == "pre-prod"
+
+- name: Check if kopsig already exist or not
+  shell: |
+    export KOPS_STATE_STORE="s3://kube-kops-mongo-poc-com-state-store"
+    kops get ig | grep "{{ ns_name }}"
+#   kops create ig "{{ ns_name }}" --dry-run -o yaml
+  when: status == "present"
+  register: kopscheck_op
+  ignore_errors: yes
+
+- name: Create kops ig if it doesn't exist already
+  shell: |
+    export KOPS_STATE_STORE="s3://kube-kops-mongo-poc-com-state-store"
+    kops create -f "/tmp/kops-ig.yml"
+  when:
+    - status == "present"
+    - kopscheck_op.rc == 1
+#   - not(kopscheck_op.stdout.find('already exists') == "-1")
+
+  register: kopscreate_op
+
+- debug:
+    var: kopscreate_op
+
+- name: Update cluster
+  shell: kops update cluster infra-clusters.kube.mongo-poc.com --yes
+  when: status == "present"
+  register: kopsupdate_op
+
+- debug:
+    var: kopsupdate_op
+# Pause for 2 minutes to ensure instances comes up
+- pause:
+    minutes: 2
+
+# Delete instance group in case status is 'absent'.
+- name: Delete kops ig
+  shell: kops delete ig "{{ ns_name }}" --yes
+  when: status == "absent"
+  register: kopsdelete_op
+
+- debug:
+    var: kopsdelete_op

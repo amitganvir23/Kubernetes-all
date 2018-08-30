@@ -1,0 +1,72 @@
+---
+
+# Setup kong with postgres as backend - using helm
+- name: Install Postgres helm
+  shell: helm install -f "{{ role_path }}/files/postgres-values.yml" --name "{{ns_name}}-postgres" stable/postgresql --namespace "{{ns_name}}"
+  when: status == "present"
+  register: helm_op
+  #ignore_errors: True
+  #failed_when: "helm_op.stderr not in | search['*exists*']"
+  failed_when: "'exists' not in helm_op.stderr and helm_op.rc != 0"
+
+- debug:
+    var: helm_op
+
+# Pause for 2 minutes to ensure postgres comes up
+- pause:
+    minutes: 2
+
+- name: Generate kong deployment template
+  template: >
+     src="{{ role_path }}/files/kong-deployment.j2"
+     dest=/tmp/kong-deployment.yml
+
+- name: Generate kong ui deployment template
+  template: >
+     src="{{ role_path }}/files/kong-ui.j2"
+     dest=/tmp/kong-ui.yml
+
+- name: Install kong-api-gw
+  shell: kubectl apply -f "/tmp/kong-deployment.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kong_op
+
+- debug:
+    var: kong_op
+
+# Pause for 2 minutes to ensure kong comes up
+- pause:
+    minutes: 2
+
+
+
+- name: Install kong-UI
+  shell: kubectl apply -f "/tmp/kong-ui.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kongui_op
+
+- debug:
+    var: kongui_op
+
+# Pause for 2 minutes to ensure kong comes up
+- pause:
+    minutes: 2
+
+
+# Delete Kong if namespace is deleted
+- name: Delete kong-api-gw
+  shell: kubectl delete deployment kong --namespace "{{ns_name}}"
+  when: status == "absent"
+  register: kong_op
+
+- debug:
+    var: kong_op
+
+# Delete postgres if namespace is deleted
+- name: Delete Postgres helm
+  shell: helm del --purge "{{ns_name}}-postgres"
+  when: status == "absent"
+  register: helm_op
+
+- debug:
+    var: helm_op

@@ -1,0 +1,48 @@
+# domain for internal/feature teams
+domain: "mongo-internal.com"
+#Consul prefix for featue teams
+conf_start_path: mongov2-application-config-common
+couchbase_type: vm_simple
+#couchbase_type: "vm_simple"
+couchbase_version: 5
+
+project: "revel"
+
+##################################################
+# Instance group nonprod & feature namespaces.
+machineType: m4.4xlarge
+maxSize: 4
+minSize: 2
+##################################################
+
+##################################################
+# VPC details Non-prod for couchbase VMs
+# key_name: couchbase-nonprod
+# vpc_cidr: 172.20.0.0/16
+# db_subnets: "subnet-12fe8775,subnet-1bd2df5d,subnet-37a3ca7e"
+# vpc_id: vpc-4d0eb92a
+# vpc_region: ap-southeast-1
+
+key_name: kubernetes.infra-clusters.kube-nonprod.mongo-poc.com-15:c2:fd:3b:bb:6e:13:f8:61:b7:44:2a:a5:d4:b4:d6
+vpc_cidr: 10.0.0.0/16
+db_subnets: "subnet-441e2e23,subnet-483cd411,subnet-87b594ce"
+vpc_id: vpc-5c98dd3b
+vpc_region: ap-southeast-1
+
+# Quota - allocation - For feature team ns.
+# Needs to be changed for UAT/STAGE/QA/INT
+kube_pvc_quota: "{{pvc_quota}}"
+kube_secret_quota: "{{secret_quota}}"
+kube_cpu_quota: "{{cpu_quota}}"
+kube_ram_quota: "{{ram_quota}}"
+
+###################################################
+# Helm download repos:
+helm_url: https://storage.googleapis.com/kubernetes-helm/helm-v2.9.1-linux-arm64.tar.gz
+helm_folder: /usr/local/bin
+
+###################################################
+# ACM Certificates - These match with namespace name. For feature teams, we can use *certs.
+# @TODO
+# Include certs based on ns. Not for feature teams. Using *.internal.mongo-poc.com for now
+mongo_certs: arn:aws:acm:ap-southeast-1:95951367244:certificate/9517c807-da7c-46ff-ba53-0f51eb8b5774

@@ -1,0 +1,8 @@
+# Create Kops Instance Group
+
+- include: kops-preprod.yml
+  when: env_ver == "pre-prod"
+
+
+- include: kops-nonprod.yml
+  when: env_ver == "non-prod"

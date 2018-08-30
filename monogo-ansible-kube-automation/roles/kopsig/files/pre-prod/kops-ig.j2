@@ -1,0 +1,23 @@
+---
+apiVersion: kops/v1alpha2
+kind: InstanceGroup
+metadata:
+  labels:
+    kops.k8s.io/cluster: infra-clusters.kube.mongo-poc.com
+  name: "{{ ns_name }}"
+spec:
+  cloudLabels:
+    billing: infra
+    environment: "{{ env_ver }}"
+  image: kope.io/k8s-1.8-debian-jessie-amd64-hvm-ebs-2018-02-08
+  machineType: "{{ machineType }}"
+  maxSize: {{ maxSize }}
+  minSize: {{ minSize }}
+  nodeLabels:
+    node-role: "{{ ns_name }}"
+    spot: "false"
+  role: Node
+  subnets:
+  - us-west-2a
+  - us-west-2b
+  - us-west-2c

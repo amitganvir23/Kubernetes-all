@@ -1,0 +1,7 @@
+- name: Create externalName eses cb service
+  k8s_v1_service:
+    name: cb-eses
+    namespace: "{{ns_name}}"
+    state: "{{status}}"
+    type: ExternalName
+    external_name: "cb-eses.{{ns_name}}.com"

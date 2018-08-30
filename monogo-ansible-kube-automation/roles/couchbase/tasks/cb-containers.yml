@@ -1,0 +1,100 @@
+---
+- name: Define CB replicas
+  set_fact:
+    nsname: "{{ ns_name }}"
+    cb_replicas: 1
+    cluster: eses
+
+  when: env_ver == "non-prod"
+
+- name: Generate helm deployment template
+  template: >
+     src="{{ role_path }}/files/cb-containers-values.j2"
+     dest=/tmp/eses.yml
+
+- name: Install cb eses using helm
+  shell: helm install -f /tmp/eses.yml --set  ingress.hosts={couchbase-eses-{{ns_name}}.internal.mongo-poc.com} --name "cb-eses-{{ns_name}}" https://s3.amazonaws.com/mongo-cb-data/mongo-couchbase-0.2.1.tgz --namespace "{{ns_name}}"
+  when: status == "present"
+  register: helm_op
+  #ignore_errors: True
+  #failed_when: "helm_op.stderr not in | search['*exists*']"
+  failed_when: "'exists' not in helm_op.stderr and helm_op.rc != 0"
+
+- debug:
+    var: helm_op
+
+
+# Delete CB eses if namespace is deleted
+- name: Delete cb eses helm
+  shell: helm del --purge "cb-eses-{{ns_name}}"
+  when: status == "absent"
+  register: helm_op
+
+- debug:
+    var: helm_op
+
+# Setup CB kernel single node cluster- using helm
+- name: Define CB replicas
+  set_fact:
+    cb_replicas: 1
+    cluster: kernel
+  when: env_ver == "non-prod"
+
+- name: Generate helm deployment template
+  template: >
+     src="{{ role_path }}/files/cb-containers-values.j2"
+     dest=/tmp/kernel.yml
+
+- name: Install cb kernel using helm
+  shell: helm install -f /tmp/kernel.yml --set  ingress.hosts={couchbase-kernel-{{ns_name}}.internal.mongo-poc.com} --name "cb-kernel-{{ns_name}}" https://s3.amazonaws.com/mongo-cb-data/mongo-couchbase-0.2.1.tgz --namespace "{{ns_name}}"
+  when: status == "present"
+  register: helm_op
+  #ignore_errors: True
+  #failed_when: "helm_op.stderr not in | search['*exists*']"
+  failed_when: "'exists' not in helm_op.stderr and helm_op.rc != 0"
+
+- debug:
+    var: helm_op
+
+
+# Delete CB kernel if namespace is deleted
+- name: Delete cb kernel helm
+  shell: helm del --purge "cb-kernel-{{ns_name}}"
+  when: status == "absent"
+  register: helm_op
+
+- debug:
+    var: helm_op
+
+# Setup CB analytics single node cluster- using helm
+- name: Define CB replicas
+  set_fact:
+    cb_replicas: 1
+    cluster: analytics
+  when: env_ver == "non-prod"
+
+- name: Generate helm deployment template
+  template: >
+     src="{{ role_path }}/files/cb-containers-values.j2"
+     dest=/tmp/analytics.yml
+
+- name: Install cb analytics using helm
+  shell: helm install -f /tmp/analytics.yml --set  ingress.hosts={couchbase-analytics-{{ns_name}}.internal.mongo-poc.com} --name "cb-analytics-{{ns_name}}" https://s3.amazonaws.com/mongo-cb-data/mongo-couchbase-0.2.1.tgz --namespace "{{ns_name}}"
+  when: status == "present"
+  register: helm_op
+  #ignore_errors: True
+  #failed_when: "helm_op.stderr not in | search['*exists*']"
+  failed_when: "'exists' not in helm_op.stderr and helm_op.rc != 0"
+
+- debug:
+    var: helm_op
+
+
+# Delete CB analytics if namespace is deleted
+- name: Delete cb analytics helm
+  shell: helm del --purge "cb-analytics-{{ns_name}}"
+  when: status == "absent"
+  register: helm_op
+
+- debug:
+    var: helm_op

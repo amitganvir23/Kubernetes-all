@@ -1,0 +1,77 @@
+# Include variable and secrets based on type of environment
+# all is available across
+- include_vars: ../../group_vars/vault-preprod.yml
+  no_log: true
+  when: env_ver == "pre-prod"
+
+- include_vars: ../../group_vars/vault-nonprod.yml
+  no_log: true
+  when: env_ver == "non-prod"
+
+- include_vars: ../../group_vars/preprod.yml
+  no_log: true
+  when: env_ver == "pre-prod"
+
+- include_vars: ../../group_vars/nonprod.yml
+  no_log: true
+  when: env_ver == "non-prod"
+
+# Couchbase vm
+- name: launch couchbase on VMs
+  cloudformation:
+    stack_name: "{{ns_name}}-kernel"
+    state: "present"
+    region: "{{vpc_region}}"
+    disable_rollback: true
+    role_arn: arn:aws:iam::95951367244:role/ansible-cloudformation
+    template: "{{ role_path }}/files/cb5-mds-vm.json"
+    template_parameters:
+      KeyName: "{{key_name}}"
+      CidrIpVPC: "{{vpc_cidr}}"
+      License: "BYOL"
+      Password: "{% for item in cbadmin_passwd %}{% if item == env %}{{cbadmin_passwd[item] }}{% endif %}{% endfor %}"
+      Subnets: "{{db_subnets}}"
+      Username: "Administrator"
+      VpcId: "{{vpc_id}}"
+    tags:
+      Stack: "{{ns_name}}"
+
+
+- name: launch couchbase on VMs
+  cloudformation:
+    stack_name: "{{ns_name}}-analytics"
+    state: "present"
+    region: "{{vpc_region}}"
+    disable_rollback: true
+    template: "{{ role_path }}/files/cb5-mds-vm.json"
+    role_arn: arn:aws:iam::95951367244:role/ansible-cloudformation
+    template_parameters:
+      KeyName: "{{key_name}}"
+      CidrIpVPC: "{{vpc_cidr}}"
+      License: "BYOL"
+      Password: "{% for item in cbadmin_passwd %}{% if item == env %}{{cbadmin_passwd[item] }}{% endif %}{% endfor %}"
+      Subnets: "{{db_subnets}}"
+      Username: "Administrator"
+      VpcId: "{{vpc_id}}"
+    tags:
+      Stack: "{{ns_name}}"
+
+
+- name: launch couchbase on VMs
+  cloudformation:
+    stack_name: "{{ns_name}}-eses"
+    state: "present"
+    region: "{{vpc_region}}"
+    disable_rollback: true
+    template: "{{ role_path }}/files/cb5-mds-vm.json"
+    role_arn: arn:aws:iam::95951367244:role/ansible-cloudformation
+    template_parameters:
+      KeyName: "{{key_name}}"
+      CidrIpVPC: "{{vpc_cidr}}"
+      License: "BYOL"
+      Password: "{% for item in cbadmin_passwd %}{% if item == env %}{{cbadmin_passwd[item] }}{% endif %}{% endfor %}"
+      Subnets: "{{db_subnets}}"
+      Username: "Administrator"
+      VpcId: "{{vpc_id}}"
+    tags:
+      Stack: "{{ns_name}}"

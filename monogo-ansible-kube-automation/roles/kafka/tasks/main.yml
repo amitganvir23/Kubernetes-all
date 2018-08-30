@@ -1,0 +1,61 @@
+---
+
+- name: Define Kafka replica replicas
+  set_fact:
+    kafka_replicas: 3
+    zoo_replicas: 3
+  when: env_ver == "pre-prod"
+
+
+- name: Define Kafka replica replicas
+  set_fact:
+    kafka_replicas: 1
+    zoo_replicas: 1
+  when: env_ver == "non-prod"
+
+- name: Generate kafka-client deployment template
+  template: >
+     src="{{ role_path }}/files/kafka-client.j2"
+     dest=/tmp/kafka-client.yml
+
+- name: Generate helm deployment template for pre-prod
+  template: >
+     src="{{ role_path }}/files/kafka-values.j2"
+     dest=/tmp/kafka.yml
+  when: env_ver == "pre-prod"
+
+- name: Generate helm deployment template for non-prod
+  template: >
+     src="{{ role_path }}/files/kafka-values-np.j2"
+     dest=/tmp/kafka.yml
+  when: env_ver == "non-prod"
+
+# Setup kong with kafka as backend - using helm
+- name: Install kafka using helm
+  shell: helm install -f /tmp/kafka.yml --name "{{ns_name}}-kafka" incubator/kafka --namespace "{{ns_name}}" --version 0.4.7
+  when: status == "present"
+  register: helm_op
+  #ignore_errors: True
+  #failed_when: "helm_op.stderr not in | search['*exists*']"
+  failed_when: "'exists' not in helm_op.stderr and helm_op.rc != 0"
+
+- debug:
+    var: helm_op
+
+# Delete kafka if namespace is deleted
+- name: Delete kafka helm
+  shell: helm del --purge "{{ns_name}}-kafka"
+  when: status == "absent"
+  register: helm_op
+
+- debug:
+    var: helm_op
+
+# Setup kafka-client
+- name: Install Kakfa-Client Tool
+  shell: kubectl apply -f "/tmp/kafka-client.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kafka-client_op
+
+- debug:
+    var: kafka-client_op

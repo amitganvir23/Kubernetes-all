@@ -1,0 +1,12 @@
+######################################################
+
+# Common values for all environments go here
+
+######################################################
+
+
+##################################################
+# Variable/values for all nodes
+
+status: present
+kube_verify_ssl: false

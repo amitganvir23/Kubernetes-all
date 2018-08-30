@@ -1,0 +1,27 @@
+---
+- name:  Pre-prod check
+  hosts: localhost
+  gather_facts: False
+  tasks:
+    - name: WARNING MANUAL PAUSE - pre-prod/prod selected
+      pause:
+        minutes: 2
+      when: env_ver == "pre-prod"
+
+
+- name: Deploy namespace and related objects
+  hosts: localhost
+  gather_facts: False
+  #become: True
+  roles:
+    # common is where we create secrets & configmaps along with other things
+    - role: common
+    - role: ansible-kubernetes-modules
+      install_python_requirements: no
+    - role: kopsig
+    - role: namespace
+    - role: kong-deployment
+    - role: couchbase
+    - role: git2consul
+    - role: kafka
+    - role: microservices

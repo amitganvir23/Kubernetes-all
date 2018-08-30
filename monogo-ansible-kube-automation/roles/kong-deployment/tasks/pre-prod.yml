@@ -1,0 +1,73 @@
+---
+
+# Include variable and secrets based on type of environment
+# all is available across
+- include_vars: ../../group_vars/preprod.yml
+  no_log: true
+  when: env_ver == "pre-prod"
+
+
+- name: Define Variable
+  set_fact:
+    kong_replicas: 2
+  when: env_ver == "pre-prod"
+
+- name: Generate kong deployment template
+  template: >
+     src="{{ role_path }}/files/pre-prod/kong-deployment.j2"
+     dest=/tmp/kong-deployment.yml
+  when: env_ver == "pre-prod"
+
+- name: Generate kong ui deployment template
+  template: >
+     src="{{ role_path }}/files/pre-prod/kong-ui.j2"
+     dest=/tmp/kong-ui.yml
+  when: env_ver == "pre-prod"
+
+
+- name: Generate kong data job template
+  template: >
+     src="{{ role_path }}/files/pre-prod/kong-data-job.j2"
+     dest=/tmp/kong-data-job.yml
+
+# @TODO: For UAT this has to be RDS
+# - name: Install Postrgres for kong
+#   shell: kubectl apply -f "/tmp/postgres.yml" --namespace "{{ns_name}}"
+#   when: status == "present"
+#   register: postgres_op
+#
+# - debug:
+#     var: postgres_op
+#
+# - pause:
+#     minutes: 2
+
+# - name: Install kong-api-gw
+#   shell: kubectl apply -f "/tmp/kong-deployment.yml" --namespace "{{ns_name}}"
+#   when: status == "present"
+#   register: kong_op
+#
+# - debug:
+#     var: kong_op
+
+# Pause for 2 minutes to ensure kong comes up
+# - pause:
+#     minutes: 2
+
+
+- name: Install kong-UI
+  shell: kubectl apply -f "/tmp/kong-ui.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kongui_op
+
+- debug:
+    var: kongui_op
+
+
+- name: Setup Kong APIs
+  shell: kubectl apply -f "/tmp/kong-data-job.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kongdata_op
+
+- debug:
+    var: kongdata_op

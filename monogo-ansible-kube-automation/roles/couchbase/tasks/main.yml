@@ -1,0 +1,49 @@
+---
+
+# Setup couchbase
+# - Based on the type of environment couchbase deployment would differ
+# - Feature teams : Single container with empty dir
+# _ Non-Prod: Dev/QA - Helm deployed containers
+# - Pre-Prod ( UAT/Perf): VMs
+
+# This is for feature teams
+- include: cb-containers.yml
+  when: env_ver == "non-prod" and couchbase_type == "containers"
+
+# - include: cb-helm.yml
+#   when: env_ver == "non-prod" and couchbase_type == "containers"
+
+# Cloudformation template
+# Custom AMI updated for us-west-2
+# CB 4 support ended
+# - include: cb-vm.yml
+#   when: env_ver == "pre-prod" and couchbase_type == "vm_mds" and couchbase_version == 4
+
+- include: cb5-mds-vm.yml
+  when: env_ver == "pre-prod" and couchbase_type == "vm_mds" and couchbase_version == 5
+
+- include: cb5-simple-vm.yml
+  when: env_ver == "pre-prod" and couchbase_type == "vm_simple" and couchbase_version == 5
+
+
+# Non prod
+- include: cb5-simple-vm.yml
+  when: env_ver == "non-prod" and couchbase_type == "vm_simple" and couchbase_version == 5
+
+- include: cb-vm-service-kernel.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="rio"
+
+- include: cb-vm-service-eses.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="rio"
+
+- include: cb-vm-service-analytics.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="rio"
+
+- include: cb-vm-service-cluster1.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"
+
+- include: cb-vm-service-cluster2.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"
+
+- include: cb-vm-service-cluster3.yml
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"

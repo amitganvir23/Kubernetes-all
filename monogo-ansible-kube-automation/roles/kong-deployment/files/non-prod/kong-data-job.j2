@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "kong-api-creator-{{ 100 | random }}"
+  namespace: "{{ns_name}}"
+spec:
+  template:
+    spec:
+      containers:
+      - name: kong-api-creator
+        image: 95951367244.dkr.ecr.us-east-1.amazonaws.com/mongo-kongdata:quotefix
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        env:
+        - name: KONG_HOST
+          value: kong-admin-service
+        - name: API_LIST
+          value: "ims:9380 dcms:9070 lap:9030 lec:9050 lpb:9080 iam:9200 leamose:9220 iamsi:9400 gb:9033 registrarsi:9420 lad:9360 lcd:9390 rms:9490 tot:9470 mpu:9460 sps:9350 pls:9340 lmb:9230 autobahnpro:9410 dataingestion:9450 autobahncon:9440 ams:9330 lae:9370"
+        - name: INTERNAL_DOMAIN
+          value: "{{ns_name}}.svc.cluster.local"
+      restartPolicy: Never

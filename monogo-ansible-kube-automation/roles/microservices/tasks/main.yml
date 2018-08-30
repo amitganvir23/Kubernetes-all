@@ -1,0 +1,13 @@
+# Include individual deployer
+
+- include: pre-prod-deployer.yml
+  when: env_ver == "pre-prod" and project=="rio"
+
+- include: non-prod-deployer.yml
+  when: env_ver == "non-prod" project=="rio"
+
+- include: pre-prod-deployer-revel.yml
+  when: env_ver == "pre-prod" and project=="revel"
+
+- include: non-prod-deployer-revel.yml
+  when: env_ver == "non-prod" project=="revel"

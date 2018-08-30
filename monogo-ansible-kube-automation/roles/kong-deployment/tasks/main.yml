@@ -1,0 +1,8 @@
+# Install kong
+
+- include: pre-prod.yml
+  when: env_ver == "pre-prod"
+
+
+- include: non-prod.yml
+  when: env_ver == "non-prod"

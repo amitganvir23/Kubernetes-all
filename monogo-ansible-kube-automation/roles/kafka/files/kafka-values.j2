@@ -1,0 +1,192 @@
+# ------------------------------------------------------------------------------
+# Kafka:
+# ------------------------------------------------------------------------------
+
+## The StatefulSet installs 3 pods by default
+replicas: "{{kafka_replicas}}"
+
+## The kafka image repository
+image: "confluentinc/cp-kafka"
+
+## The kafka image tag
+imageTag: "4.0.0"
+
+## Specify a imagePullPolicy
+## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+imagePullPolicy: "IfNotPresent"
+
+## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+resources:
+  limits:
+     cpu: 4
+     memory: 8192Mi
+  requests:
+     cpu: 2
+     memory: 8192Mi
+
+## The size of the persistentVolume to allocate to each Kafka Pod in the StatefulSet. For
+## production servers this number should likely be much larger.
+#storage: "30Gi"
+
+## The StatefulSet Update Strategy which Kafka will use when changes are applied.
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+updateStrategy:
+  type: "OnDelete"
+
+## The StatefulSet Update Strategy which Kafka will use when changes are applied.
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+
+## The subpath within the Kafka container's PV where logs will be stored.
+## This is combined with `persistence.mountPath`, to create, by default: /opt/kafka/data/logs
+logSubPath: "logs"
+
+## If `updateStrategy` is set to "RollingUpdate", you may optionally specify which partition
+## should be updated first.
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions
+rollingUpdatePartition: 0
+
+## The name of the storage class which the cluster should use.
+# storageClass: default
+
+## The location within the Kafka container where the PV will mount its storage and Kafka will store
+## its logs
+dataDirectory: "/opt/kafka/data"
+
+## Pod scheduling preferences.
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+         nodeSelectorTerms:
+         - matchExpressions:
+           - key: node-role
+             operator: In
+             values:
+             - "{{ns_name}}"
+
+## External access.
+##
+external:
+  enabled: false
+  servicePort: 19092
+  firstListenerPort: 31090
+  domain: cluster.local
+  init:
+    image: "lachlanevenson/k8s-kubectl"
+    imageTag: "v1.9.3"
+    imagePullPolicy: "IfNotPresent"
+
+## Configuration Overrides. Specify any Kafka settings you would like set on the StatefulSet
+## here in map format, as defined in the official docs.
+## ref: https://kafka.apache.org/documentation/#brokerconfigs
+##
+#configurationOverrides:
+#  "offsets.topic.replication.factor": 3
+configurationOverrides:
+  offsets.topic.replication.factor: "{{kafka_replicas}}"
+  num.partitions: "{{kafka_replicas}}"
+  default.replication.factor: "{{kafka_replicas}}"
+  num.network.threads: 6
+  num.io.threads: 12
+  log.retention.hours: 1
+
+  # "auto.leader.rebalance.enable": true
+  # "auto.create.topics.enable": true
+
+  ## Options required for external access via NodePort
+  ## ref:
+  ## - http://kafka.apache.org/documentation/#security_configbroker
+  ## - https://cwiki.apache.org/confluence/display/KAFKA/KIP-103%3A+Separation+of+Internal+and+External+traffic
+  ##
+  ## Setting "advertised.listeners" here appends to "PLAINTEXT://${POD_IP}:9092,"
+  # "advertised.listeners": |-
+  #   EXTERNAL://kafka.cluster.local:$((31090 + ${KAFKA_BROKER_ID}))
+  # "listener.security.protocol.map": |-
+  #   PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+
+## Persistence configuration. Specify if and how to persist data to a persistent volume.
+##
+persistence:
+  enabled: true
+
+  ## The size of the PersistentVolume to allocate to each Kafka Pod in the StatefulSet. For
+  ## production servers this number should likely be much larger.
+  ##
+  size: "100Gi"
+
+  ## The location within the Kafka container where the PV will mount its storage and Kafka will
+  ## store its logs.
+  ##
+  mountPath: "/opt/kafka/data"
+
+  ## Kafka data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass:
+
+
+# ------------------------------------------------------------------------------
+# Zookeeper:
+# ------------------------------------------------------------------------------
+
+zookeeper:
+  ## If true, install the Zookeeper chart alongside Kafka
+  ## ref: https://github.com/kubernetes/charts/tree/master/incubator/zookeeper
+  enabled: true
+
+  ## Number of Zookeeper pods.
+  servers: "{{zoo_replicas}}"
+
+  ## Configure Zookeeper resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  resources:
+    limits:
+       cpu: 1
+       memory: 2048Mi
+    requests:
+       cpu: 500m
+       memory: 1024Mi
+
+  ## The JVM heap size to allocate to Zookeeper
+  heap: "2G"
+
+  ## The amount of PV storage allocated to each Zookeeper pod in the statefulset
+  storage: "10Gi"
+
+  ## Specify a Zookeeper imagePullPolicy
+  ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  imagePullPolicy: "IfNotPresent"
+
+  ## If the Zookeeper Chart is disabled a URL and port are required to connect
+  url: ""
+  port: 2181
+
+# ------------------------------------------------------------------------------
+# Schema Registry:
+# ------------------------------------------------------------------------------
+
+## Install Confluent Schema Registry server alongside Kafka to track Avro Schemas
+schema-registry:
+  ## If true, install the Schema-Registry chart alongside Kafka
+  ## ref: https://github.com/kubernetes/charts/tree/master/incubator/schema-registry
+  enabled: false
+
+
+## Pod scheduling preferences.
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+         nodeSelectorTerms:
+         - matchExpressions:
+           - key: node-role
+             operator: In
+             values:
+             - "{{ns_name}}"

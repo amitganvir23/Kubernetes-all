@@ -1,0 +1,7 @@
+- name: Create externalName cluster3 cb service
+  k8s_v1_service:
+    name: cb-cluster3
+    namespace: "{{ns_name}}"
+    state: "{{status}}"
+    type: ExternalName
+    external_name: "cb-cluster3.{{ns_name}}.com"

@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1 # for versions before 1.8.0 use apps/v1beta1
+kind: Deployment
+metadata:
+  name: kafka-client
+  namespace: "{{ns_name}}"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafka-client
+        tier: backend
+    spec:
+      containers:
+      - name: kafka-client
+        image: confluentinc/cp-kafka:4.0.0
+        resources:
+          limits:
+            cpu: 512m
+            memory: 512Mi
+          requests:
+            cpu: 256m
+            memory: 256Mi
+        command:
+          - sh
+          - -c
+          - "exec tail -f /dev/null"

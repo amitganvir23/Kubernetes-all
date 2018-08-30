@@ -1,0 +1,87 @@
+# ------------------------------------------------------------------------------
+# CB:
+# ------------------------------------------------------------------------------
+
+## The StatefulSet installs 1 pods by default with all 3 services.
+replicaCount: "{{cb_replicas}}"
+cluster: {{ cluster }}
+nsname: {{nsname}}
+## The CB image repository and tag
+image:
+  repository: 95951367244.dkr.ecr.us-east-1.amazonaws.com/couchbase
+  tag: v5.1.0
+  pullPolicy: IfNotPresent
+
+## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+   limits:
+    cpu: 2048m
+    memory: 4096Mi
+   requests:
+    cpu: 2048m
+    memory: 4096Mi
+
+##create kubernetes service.
+service:
+  type: ClusterIP
+  adminPort: 8091
+  viewsPort: 8092
+  queriesPort: 8093
+  searchPort: 8094
+  indexeadminport: 9100
+  indexescanport: 9101
+  indexehttpport: 9102
+  indexeinitport: 9103
+  indexerstport: 9104
+  indexemainport: 9105
+  xdcrrestport: 9998
+  projectorport: 9999
+  memsslport: 11207
+  memcacheport: 11209
+  memcachedport: 11210
+  moxiport: 11211
+  sslrestport: 18091
+  sslcapiport: 18092
+  sslqueryport: 18093
+  epmdport: 4369
+  ftssslport: 18094
+
+##Create ingress for Couchbase UI console.
+ingress:
+  enabled: true
+  # Used to create an Ingress record.
+  hosts:
+    - couchbase-{{ cluster }}-{{ns_name}}.internal.mongo-poc.com
+      #Pass the host value using --set  ingress.hosts={couchbase-analytics-{{ns_name}}.mongo-internal.com} at run time.
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    # kubernetes.io/tls-acme: "true"
+  tls:
+    # Secrets must be manually created in the namespace.
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+
+##Define resources for couchbase.
+
+couchbase:
+  terminationGracePeriodSeconds: 8640
+  storage:
+    class: gp2
+    size: 100Gi
+  username: admin
+  bucketram: 512
+  clusterindex: 512
+  clusterram: 4096
+  bucket:
+    kernel: dcms ims led lec gradebook lpb common
+    eses: iam autobahncon dataingestion autobahnpro
+    analytics: ams pls sps leamose tot rms
+
+#############PENDING#################
+##Need to paas ingress host by values.j2

@@ -1,0 +1,243 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-transform-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "ssl"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "True"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "240"
+  labels:
+    app: kong
+    tier: "{{ns_name}}"
+spec:
+  # comment or delete the following line if you want to use a LoadBalancer
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  - 192.251.0.0/16  # OPENSOURCEBOOK VPN
+  - 159.182.0.0/16  # OPENSOURCEBOOK VPN
+  - 139.5.0.0/16    # Fhome
+  - 115.249.0.0/16  # Noida office
+  - 115.110.0.0/16  # Noida office
+  - 159.182.0.0/16  # Noida office
+  - 54.153.249.4/32 # Sauce labs
+  - 202.174.0.0/16  # Noida office
+  - 13.55.58.23/32 # Sauce-lab windows
+  - 27.50.0.0/16    # Nagpur office
+  - 162.222.72.0/21 # Sauce-lab-remote
+  - 66.85.48.0/21   # Sauce-lab-remote
+  ports:
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+  selector:
+    app: kong
+    tier: "{{ns_name}}"
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-api-creator-{{ 100 | random }}"
+spec:
+  template:
+    metadata:
+      name: kong-migration
+    spec:
+      containers:
+      - name: kong-migration
+        image: kong:0.12.3-alpine
+        resources:
+         requests:
+          cpu: 100m
+          memory: 128Mi
+         limits:
+          cpu: 400m
+          memory: 512Mi
+        env:
+          - name: KONG_NGINX_DAEMON
+            value: 'off'
+          - name: KONG_PG_HOST
+            valueFrom:
+              secretKeyRef:
+                name: postgres-password
+                key: postgresAdrs
+          - name: KONG_PG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-password
+                key: postgresPasswd
+        command: [ "/bin/sh", "-c", "kong migrations up --vv" ]
+      restartPolicy: Never
+
+---
+# This service is for replica set communication
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-cluster-service
+  labels:
+    app: kong
+    tier: "{{ns_name}}"
+spec:
+  # comment or delete the following line if you want to use a LoadBalancer
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  type: ClusterIP
+  ports:
+  - name: adv-tcp
+    port: 7946
+    targetPort: 7946
+    protocol: TCP
+  - name: adv-udp
+    port: 7946
+    targetPort: 7946
+    protocol: UDP
+  - name: rpc-tcp
+    port: 7373
+    targetPort: 7373
+    protocol: TCP
+  selector:
+    app: kong
+    tier: "{{ns_name}}"
+
+---
+
+# This service is for kong UI communication with kong
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-admin-service
+  labels:
+    app: kong
+    tier: "{{ns_name}}"
+spec:
+  # comment or delete the following line if you want to use a LoadBalancer
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  # type: LoadBalancer
+  ports:
+  - port: 8001
+  selector:
+    app: kong
+    tier: "{{ns_name}}"
+
+---
+apiVersion: apps/v1beta1 # for versions before 1.8.0 use apps/v1beta1
+kind: Deployment
+metadata:
+  name: kong
+spec:
+  selector:
+    matchLabels:
+      app: kong
+      tier: "{{ns_name}}"
+  replicas: {{kong_replicas | int }}
+  template:
+    metadata:
+      labels:
+        app: kong
+        tier: "{{ns_name}}"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role
+                operator: In
+                values:
+                - "{{ns_name}}"
+      containers:
+      - name: kong-api-gw
+        image: 95951367244.dkr.ecr.us-east-1.amazonaws.com/mongo-kong:0.12.3-alpine_79
+        resources:
+          limits:
+            cpu: 300m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: KONG_ADMIN_LISTEN
+          value: 0.0.0.0:8001
+        - name: KONG_CUSTOM_PLUGINS
+          value: mongo-token-validate
+        - name: KONG_DATABASE
+          value: postgres
+        - name: KONG_LUA_PACKAGE_PATH
+          value: /oauth-iam/mongo-token-validate/lua_modules/share/lua/5.1/kong/plugins/mongo-token-validate/?.lua
+        - name: KONG_PG_DATABASE
+          value: kong
+        - name: KONG_CLUSTER_LISTEN
+          value: $(POD_IP):7946
+        - name: KONG_CLUSTER_LISTEN_RPC
+          value: 127.0.0.1:7373
+        - name: KONG_HTTP2
+          value: "on"
+        - name: KONG_SSL
+          value: "on"
+        - name: KONG_SSL_CERT
+          value: /usr/local/customssl/kong-custom.crt
+        - name: KONG_SSL_CERT_KEY
+          value: /usr/local/customssl/kong-custom.key
+        - name: KONG_PG_HOST
+          value: mongov2-nfr.c6xjnxo3hpil.ap-southeast-1.rds.amazonaws.com
+        - name: KONG_PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-password
+              key: postgresPasswd
+        ports:
+            - name: api
+              containerPort: 8000
+            - name: apissl
+              containerPort: 8443
+            - name: admin
+              containerPort: 8001
+            - name: serflan-tcp
+              protocol: "TCP"
+              containerPort: 7946
+            - name: serflan-udp
+              protocol: "UDP"
+              containerPort: 7946
+            - name: serfwan-tcp
+              protocol: "TCP"
+              containerPort: 7373
+        volumeMounts:
+        - mountPath: /usr/local/customssl
+          name: kong-key-crt
+          readOnly: true
+      volumes:
+        - name: kong-key-crt
+          secret:
+           defaultMode: 420
+           secretName: kong-key-crt
+
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   name: kong-api-ingress
+#   annotations:
+#     external-dns.alpha.kubernetes.io/hostname: "{{ns_name}}.{{domain}}"
+#     ingress.kubernetes.io/rewrite-target: /
+# spec:
+#   rules:
+#   - host: "{{ns_name}}.{{domain}}"
+#     http:
+#       paths:
+#       - path: /
+#         backend:
+#           serviceName: kong-transform-service
+#           servicePort: 8000

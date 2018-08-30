@@ -1,0 +1,7 @@
+- name: Create externalName kernel cb service
+  k8s_v1_service:
+    name: cb-kernel
+    namespace: "{{ns_name}}"
+    state: "{{status}}"
+    type: ExternalName
+    external_name: "cb-kernel.{{ns_name}}.com"

@@ -1,0 +1,7 @@
+- name: Create externalName analytics cb service
+  k8s_v1_service:
+    name: cb-analytics
+    namespace: "{{ns_name}}"
+    state: "{{status}}"
+    type: ExternalName
+    external_name: "cb-analytics.{{ns_name}}.com"

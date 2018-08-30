@@ -1,0 +1,99 @@
+---
+
+# Include variable and secrets based on type of environment
+# all is available across
+- include_vars: ../../group_vars/all
+  no_log: true
+  when: env_ver == "non-prod"
+
+- include_vars: ../../group_vars/nonprod.yml
+  no_log: true
+  when: env_ver == "non-prod"
+
+- name: Define Variable
+  set_fact:
+    kong_replicas: 1
+  when: env_ver == "non-prod"
+
+# - name: Generate postgres deployment template
+#   template: >
+#      src="{{ role_path }}/files/non-prod/postgres.j2"
+#      dest=/tmp/postgres.yml
+
+# Feature teams
+- name: Generate kong deployment template
+  template: >
+     src="{{ role_path }}/files/non-prod/kong-deployment.j2"
+     dest=/tmp/kong-deployment.yml
+  when: env_ver == "non-prod"
+
+- name: Generate kong ui deployment template
+  template: >
+     src="{{ role_path }}/files/non-prod/kong-ui.j2"
+     dest=/tmp/kong-ui.yml
+  when: env_ver == "non-prod"
+
+# - name: Generate kong data job template
+#   template: >
+#      src="{{ role_path }}/files/non-prod/kong-data-job.j2"
+#      dest=/tmp/kong-data-job.yml
+
+# @TODO: For UAT this has to be RDS
+# - name: Install Postrgres for kong
+#   shell: kubectl apply -f "/tmp/postgres.yml" --namespace "{{ns_name}}"
+#   when: status == "present"
+#   register: postgres_op
+#
+# - debug:
+#     var: postgres_op
+#
+# - pause:
+#     minutes: 2
+
+- name: Install kong-api-gw
+  shell: kubectl apply -f "/tmp/kong-deployment.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kong_op
+
+- debug:
+    var: kong_op
+
+# Pause for 2 minutes to ensure kong comes up
+- pause:
+    minutes: 2
+
+
+- name: Install kong-UI
+  shell: kubectl apply -f "/tmp/kong-ui.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kongui_op
+
+- debug:
+    var: kongui_op
+
+
+- name: Setup Kong APIs
+  shell: kubectl apply -f "/tmp/kong-data-job.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  register: kongdata_op
+
+- debug:
+    var: kongdata_op
+
+
+ #Remove incase state is absent
+- name: Delete kong
+  shell: kubectl delete pods,services,deploy -l app=kong --namespace "{{ns_name}}"
+  when: status == "absent"
+
+# - name: Delete Postgres
+#   shell: kubectl delete pods,services,deploy -l name=postgres --namespace "{{ns_name}}"
+#   when: status == "absent"
+
+# - name: Delete kong deployment
+#   shell: kubectl delete deploy kong --namespace "{{ns_name}}"
+#   when: status == "absent"
+#
+# - name: Delete kong-ui deployment
+#   shell: kubectl delete deploy kong-ui --namespace "{{ns_name}}"
+#   when: status == "absent"

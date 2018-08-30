@@ -1,0 +1,61 @@
+# Include variable and secrets based on type of environment
+# all is available across
+- include_vars: ../../group_vars/vault-nonprod.yml
+  no_log: true
+
+- include_vars: ../../group_vars/nonprod.yml
+  no_log: true
+
+- name: Define ms replica
+  set_fact:
+    ms_replica: 1
+  tags:
+      - msdeployment
+
+- name: Generate service deployment template
+  template: >
+     src="{{ role_path }}/files/non-prod-revel/kube-deployer-backend.j2"
+     dest="/tmp/kube-deployer-{{item.service_name}}.yml"
+  with_items:
+      - { service_name: 'cde', port: '9510', cluster: 'cluster1'}
+      - { service_name: 'asm', port: '9530', cluster: 'cluster1'}
+      - { service_name: 'cma', port: '9550', cluster: 'cluster1'}
+      - { service_name: 'lad', port: '9360', cluster: 'cluster1'}
+      - { service_name: 'lae', port: '9370', cluster: 'cluster1'}
+      - { service_name: 'lap', port: '9030', cluster: 'cluster2'}
+      - { service_name: 'lee', port: '9060', cluster: 'cluster2'}
+      - { service_name: 'lpb', port: '9080', cluster: 'cluster2'}
+      - { service_name: 'imc', port: '9090', cluster: 'cluster2'}
+      - { service_name: 'iam', port: '9100', cluster: 'cluster3'}
+      - { service_name: 'cms', port: '9110', cluster: 'cluster3'}
+      - { service_name: 'lmb', port: '9120', cluster: 'cluster3'}
+
+
+  tags:
+      - msdeployment
+
+# @TODO: For UAT this has to be RDS
+- name: Deploy microservices
+  shell: kubectl apply -f "/tmp/kube-deployer-{{item.service_name}}.yml" --namespace "{{ns_name}}"
+  when: status == "present"
+  with_items:
+    - { service_name: 'cde'}
+    - { service_name: 'asm'}
+    - { service_name: 'cma'}
+    - { service_name: 'lad'}
+    - { service_name: 'lae'}
+    - { service_name: 'lap'}
+    - { service_name: 'lee'}
+    - { service_name: 'lpb'}
+    - { service_name: 'imc'}
+    - { service_name: 'iam'}
+    - { service_name: 'cms'}
+    - { service_name: 'lmb'}
+  tags:
+      - msdeployment
+
+
+ #Delete the deployer
+- name: Delete Micsroservices Deployment
+  shell: kubectl delete services,deploy -l tier=backend --namespace "{{ns_name}}"
+  when: status == "absent"
