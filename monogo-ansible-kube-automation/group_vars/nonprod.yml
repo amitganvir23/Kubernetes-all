@@ -6,7 +6,7 @@ couchbase_type: vm_simple
 #couchbase_type: "vm_simple"
 couchbase_version: 5
 
-project: "revel"
+project: "novel"
 
 ##################################################
 # Instance group nonprod & feature namespaces.

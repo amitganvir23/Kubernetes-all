@@ -40,10 +40,10 @@
   when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="rio"
 
 - include: cb-vm-service-cluster1.yml
-  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="novel"
 
 - include: cb-vm-service-cluster2.yml
-  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="novel"
 
 - include: cb-vm-service-cluster3.yml
-  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="revel"
+  when: (couchbase_type == "vm_mds" or couchbase_type == "vm_simple") and project=="novel"

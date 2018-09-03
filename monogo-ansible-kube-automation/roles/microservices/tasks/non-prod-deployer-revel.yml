@@ -14,7 +14,7 @@
 
 - name: Generate service deployment template
   template: >
-     src="{{ role_path }}/files/non-prod-revel/kube-deployer-backend.j2"
+     src="{{ role_path }}/files/non-prod-novel/kube-deployer-backend.j2"
      dest="/tmp/kube-deployer-{{item.service_name}}.yml"
   with_items:
       - { service_name: 'cde', port: '9510', cluster: 'cluster1'}

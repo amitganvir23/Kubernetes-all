@@ -26,9 +26,9 @@
 # Feature teams
 - name: Generate git2consul deployment template
   template: >
-     src="{{ role_path }}/files/revel-np/git2consul.j2"
+     src="{{ role_path }}/files/novel-np/git2consul.j2"
      dest=/tmp/git2consul.yml
-  when: status == "present" and project == "revel"
+  when: status == "present" and project == "novel"
 
 - name: Install git2consul
   shell: kubectl apply -f "/tmp/git2consul.yml" --namespace "mongo-consul"
